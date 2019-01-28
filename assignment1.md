@@ -210,10 +210,9 @@ ext4 is a journaling file system. i.e. it maintains a journal on which it update
 
 The Btrfs file system is a Copy on write file system - i.e. it never updates a block in place. When an overwrite occurs, it writes to another position on the disk, making it very suitable for flash drives. You will learn more about btrfs in week 8 of the class.
 
-### Checkpoint 5:
-- Q1 - Create a btrfs File system on your workload device. One can do this using the `mkfs.btrfs` command. Read the output of mkfs command. In particular, look at "Metadata" parameter in "Block group Profiles".
+- Create a btrfs File system on your workload device. One can do this using the `mkfs.btrfs` command. Read the output of mkfs command. In particular, look at "Metadata" parameter in "Block group Profiles".
 
-- Q2 - Change the disk SSD, and recreate the btrfs file system. 
+- Change the disk SSD, and recreate the btrfs file system. 
 ```
 sudo su
 echo “0” >  /sys/dev/block/8:16/queue/rotational
@@ -221,7 +220,8 @@ echo “0” >  /sys/dev/block/8:16/queue/rotational
 
 Note: here 8:16 is the major/minor device number.
 
-- Q3 - look at the "Metadata" parameter in "Block Group Profiles". Do you see a difference? What could be the reason for this difference between SSD and HDD mode?
+### Checkpoint 4:
+- Q1 - look at the "Metadata" parameter in "Block Group Profiles". Do you see a difference? What could be the reason for this difference between SSD and HDD mode?
 
 In future, we will be performing experiments in SSD mode only.
 
@@ -273,7 +273,7 @@ $ sudo blktrace -d /dev/sdb -w 30 -o - | blkparse -a fs -i -
 
 Here, the `-a fs` command ensures only writes happening through the file system module is captured and parsed. 
 
-### Checkpoint 7:
+### Checkpoint 5:
 - Look at the man pages for blktrace and blkparse.
 
 - Q1 - identify what each column stands for in the above output. Look at column 6. We are only interested in values with "C". explain why. Look at column 7. what do W and WS stand for? explain. Look at column 9. we see writes from not only dd but also by jbd2. what is jbd2?
@@ -322,7 +322,7 @@ Lots of lines…
 ...
 ```
 
-### Checkpoint 8:
+### Checkpoint 6:
 - List the files and directories created in /mnt folder for each of the 2 runs with their sizes. Your output should match the following:
 ```
 $ ls -alrt /mnt/
