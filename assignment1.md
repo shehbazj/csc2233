@@ -5,10 +5,9 @@
 This assignment forms the basis of projects that you would be doing as a part of this course.
 You would have to use your laptop/desktop which has more than 4GB memory and about 60 GB free space. If you require a separate machine, please consult the instructor.
 
-In this assignment, you will be compiling the linux kernel, setting up a block-trace tool, and running the fio workload to capture block traces on an emulated SSD. The assignment is split into multiple parts with `checkpoints`.
+In this assignment, you will be compiling the linux kernel, setting up a block-trace tool, and running the fio workload to capture block traces on an emulated SSD and 2 workloads - `dd` and `fio`. The assignment is split into multiple parts with `checkpoints`.
 
-Checkpoints are places where the output of your setup should match the output of the handout. If your system is not the same as the checkpoint given in the handout, consult your groupmate / other groups or email the TA before proceeding further with the assignment.
-
+Checkpoints are places where the output of your setup should match the output of the handout.
 At the end of this assignment, please email the output of your checkpoints as a pdf document titled `student1\_student2.pdf` to the TA:
 
 TA Contact: Shehbaz Jaffer\\
@@ -205,7 +204,7 @@ ext4 is a log structured file system. i.e. it maintains a log on which it update
 The Btrfs file system is a Copy on write file system - i.e. it never updates a block in place. When an overwrite occurs, it writes to another position on the disk, making it very suitable for flash drives.
 
 ### Checkpoint 5:
-- Q1 - Create a btrfs File system on your workload device. One can do this using the `mkfs.btrfs` command. Read the log that is created. In particular, look at "Metadata" parameter in "Block group Profiles".
+- Q1 - Create a btrfs File system on your workload device. One can do this using the `mkfs.btrfs` command. Read the output of mkfs command. In particular, look at "Metadata" parameter in "Block group Profiles".
 
 - Q2 - Change the disk SSD, and recreate the btrfs file system. 
 ```
@@ -217,7 +216,7 @@ Note: here 8:16 is the major/minor device number.
 
 - Q3 - look at the "Metadata" parameter in "Block Group Profiles". Do you see a difference? What could be the reason for this difference between SSD and HDD mode?
 
-In future, we will be performing experiments in both SSD and HDD mode.
+In future, we will be performing experiments in SSD mode only.
 
 ## 4.3 F2FS File System
 
@@ -240,25 +239,21 @@ See the different options with which blktrace can be run:
 ```
 $ blktrace -h
 ```
-
-We run blktrace in "live" mode, i.e. we will be able to see each block written by the application. First, we will use a simple workload, the `dd` command, and then we will move to fio.
+Read the man pages of blktrace and blkparse commands. We run blktrace in "live" mode, i.e. we will be able to see each block written by the application. First, we will use a simple workload, the `dd` command, and then we will move to fio.
 
 - Open 2 terminals. Create an ext4 file system in one terminal and mount the disk. On the second terminal, run blktrace and blkparse together in live mode as follows:
 
 ```
 	sudo blktrace -d /dev/sdb -w 30 -o - | blkparse -a fs -i -
 ```
-
-Make sure you understand what each option stands for. Now go back to the first terminal, and run a dd command:
+- Make sure you understand what each option stands for. Now go back to the first terminal, and run a dd command:
 
 ```
 	sudo dd if=/dev/zero of=/mnt/myfile bs=4096 count=10
 ```
-
 Note that we are writing 10 blocks, each 4KB in size, to ext4 file system.
 
 You should get an output similar to the following in the second terminal:
-
 ```
 $ sudo blktrace -d /dev/sdb -w 30 -o - | blkparse -a fs -i -
   8,16   2        4     0.000012943 16831  I   W 274432 + 80 [dd]
@@ -270,7 +265,6 @@ $ sudo blktrace -d /dev/sdb -w 30 -o - | blkparse -a fs -i -
   8,16   1       18     5.243498828 16800  I  WS 8650928 + 8 [jbd2/sdb-8]
   8,16   1       19     5.243503175 16800  D  WS 8650928 + 8 [jbd2/sdb-8]
   8,16   1       20     5.243670258     0  C  WS 8650928 + 8 [0]
-
 ```
 
 Here, the `-a fs` command ensures only writes happening through the file system module is captured and parsed. 
@@ -282,9 +276,7 @@ Here, the `-a fs` command ensures only writes happening through the file system 
 
 - Q2 - you wrote 10 blocks each 4KB in size. the 8th column shows a number + 80. what does the number stand for? what does the 80 stand for? why is it 10 and not 80? (Hint: 1 sector = 512 bytes).
 
-- Q4 - report the size of the blktrace file captured, by only looking at "C"ompleted block traces. which are "W"ritten both asynchronously or "W"ritten "S"ynchronously. report your log file size for each of the 6 configuration runs for Q3.
-
-# 7. FIO
+# 6. FIO
 
 Install fio in your VM.
 ```
@@ -293,7 +285,7 @@ $ sudo apt-get install fio
 - Read about fio options and test examples here: 
 https://wiki.mikejung.biz/Benchmarking#Fio_Test_Options_and_Examples
 
-- Run fio with atleast 2 different configuration parameters.
+- Run fio with atleast 2 different configuration parameters for 2-3 minutes.
 
 `Note:` 
 Before each of the 2 runs:
@@ -327,7 +319,7 @@ Lots of lines…
 ```
 
 ### Checkpoint 8:
-- List the files and directories created in /mnt folder for each of the 5 runs with their sizes. Your output should match the following:
+- List the files and directories created in /mnt folder for each of the 2 runs with their sizes. Your output should match the following:
 ```
 $ ls -alrt /mnt/
 total 4194780
@@ -345,4 +337,6 @@ drwxr-xr-x  3 root root      4096 Oct  3 14:42 .
 ```
 - Report the total bytes written and read by the fio benchmark on your device.
 
-- Now run the same fio command with blocktrace enabled (follow the same steps as dd command above). Compare  the drop in fio performance (IOPS, Bandwidth) when you enable blocktrace.
+- run fio command for the 3 file systems - ext4, btrfs (SSD mode) and f2fs. compare the performance of the three file systems, preferably using a bar graph or a table (bar graph is preferred).
+
+- Now run the same fio command with blocktrace enabled (follow the same steps as dd command above). Compare  the drop in fio performance (IOPS, Bandwidth) for each of the 3 file systems. In which file system do you observe the most significant drop in performance? explain your results.
