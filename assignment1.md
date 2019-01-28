@@ -9,9 +9,9 @@ In this assignment, you will be compiling the linux kernel, setting up a block-t
 
 Checkpoints are places where the output of your setup should match the output of the handout. If your system is not the same as the checkpoint given in the handout, consult your groupmate / other groups or email the TA before proceeding further with the assignment.
 
-At the end of this assignment, please email your document titled `student1\_student2.pdf` to the TA:
+At the end of this assignment, please email the output of your checkpoints as a pdf document titled `student1\_student2.pdf` to the TA:
 
-TA Contact: Shehbaz Jaffer
+TA Contact: Shehbaz Jaffer\\
 Email:  firstname.lastname@mail.utoronto.ca
 
 Lets begin!
@@ -185,13 +185,108 @@ unmount the file system
 ```
 sudo umount -l /mnt
 ```
-Note the flag -l  (l for lazy) helps you unmount lazily
 
-# 4. Run Workload
+# 4. Introduction to file systems
 
-In this section, you would be running 2 simple workloads on the Workload-disk image that you created in the previous step, and checking if they work correctly or not:
+## 4.1 ext4 file system
 
-- FIO. Install fio in your VM.
+ext4 is a log structured file system. i.e. it maintains a log on which it updates metadata before updating the actual file system. Answer the following questions:
+
+### Checkpoint 4:
+- Q1 - List the 3 different logging modes in ext4. How are they different from each other?
+(Hint: look at the "data" option in mount command for ext4.
+
+- Q2 - Which mode is the most efficient (high-performance) mode? Why? Is it reliable?
+
+- Q3 - Which mode is the most reliabile mode? Why? Is it efficient?
+
+## 4.2 Btrfs File System
+
+The Btrfs file system is a Copy on write file system - i.e. it never updates a block in place. When an overwrite occurs, it writes to another position on the disk, making it very suitable for flash drives.
+
+### Checkpoint 5:
+- Q1 - Create a btrfs File system on your workload device. One can do this using the `mkfs.btrfs` command. Read the log that is created. In particular, look at "Metadata" parameter in "Block group Profiles".
+
+- Q2 - Change the disk SSD, and recreate the btrfs file system. 
+```
+sudo su
+echo “0” >  /sys/dev/block/8:16/queue/rotational
+```
+
+Note: here 8:16 is the major/minor device number.
+
+- Q3 - look at the "Metadata" parameter in "Block Group Profiles". Do you see a difference? What could be the reason for this difference between SSD and HDD mode?
+
+In future, we will be performing experiments in both SSD and HDD mode.
+
+## 4.3 F2FS File System
+
+Briefly go through the slides of F2FS file system [here](https://www.usenix.org/sites/default/files/conference/protected-files/fast15_slides_lee.pdf)
+
+### Checkpoint 6:
+- Q1 - Mention atleast 3 reasons (and elaborate) why F2FS is better than ext4 and Btrfs.
+
+- Q2 - What type of workloads do you think would lead to performance drop in F2FS?
+
+# 5. blk-trace
+
+A file system writes data to the disk at block grannularity. `blktrace` is a tool used to intercept these writes to your device.
+
+Install block Trace inside your VM:
+```
+$ sudo apt-get install blktrace
+```
+See the different options with which blktrace can be run:
+```
+$ blktrace -h
+```
+
+We run blktrace in "live" mode, i.e. we will be able to see each block written by the application. First, we will use a simple workload, the `dd` command, and then we will move to fio.
+
+- Open 2 terminals. Create an ext4 file system in one terminal and mount the disk. On the second terminal, run blktrace and blkparse together in live mode as follows:
+
+```
+	sudo blktrace -d /dev/sdb -w 30 -o - | blkparse -a fs -i -
+```
+
+Make sure you understand what each option stands for. Now go back to the first terminal, and run a dd command:
+
+```
+	sudo dd if=/dev/zero of=/mnt/myfile bs=4096 count=10
+```
+
+Note that we are writing 10 blocks, each 4KB in size, to ext4 file system.
+
+You should get an output similar to the following in the second terminal:
+
+```
+$ sudo blktrace -d /dev/sdb -w 30 -o - | blkparse -a fs -i -
+  8,16   2        4     0.000012943 16831  I   W 274432 + 80 [dd]
+  8,16   2        6     0.000027266 16831  D   W 274432 + 80 [dd]
+  8,16   2        7     0.000181584 16831  C   W 274432 + 80 [0]
+  8,16   1       12     5.243222997 16800  I  WS 8650888 + 40 [jbd2/sdb-8]
+  8,16   1       14     5.243232313 16800  D  WS 8650888 + 40 [jbd2/sdb-8]
+  8,16   1       15     5.243453109     0  C  WS 8650888 + 40 [0]
+  8,16   1       18     5.243498828 16800  I  WS 8650928 + 8 [jbd2/sdb-8]
+  8,16   1       19     5.243503175 16800  D  WS 8650928 + 8 [jbd2/sdb-8]
+  8,16   1       20     5.243670258     0  C  WS 8650928 + 8 [0]
+
+```
+
+Here, the `-a fs` command ensures only writes happening through the file system module is captured and parsed. 
+
+### Checkpoint 7:
+- Look at the man pages for blktrace and blkparse.
+
+- Q1 - identify what each column stands for in the above output. Look at column 6. We are only interested in values with "C". explain why. Look at column 7. what do W and WS stand for? explain. Look at column 9. we see writes from not only dd but also by jbd2. what is jbd2?
+
+- Q2 - you wrote 10 blocks each 4KB in size. the 8th column shows a number + 80. what does the number stand for? what does the 80 stand for? why is it 10 and not 80? (Hint: 1 sector = 512 bytes).
+
+- Q4 - report the size of the blktrace file captured, by only looking at "C"ompleted block traces. which are "W"ritten both asynchronously or "W"ritten "S"ynchronously. report your log file size for each of the 6 configuration runs for Q3.
+
+# 7. FIO
+
+Install fio in your VM.
 ```
 $ sudo apt-get install fio
 ```
@@ -231,7 +326,7 @@ Lots of lines…
 ...
 ```
 
-### Checkpoint 4:
+### Checkpoint 8:
 - List the files and directories created in /mnt folder for each of the 5 runs with their sizes. Your output should match the following:
 ```
 $ ls -alrt /mnt/
@@ -248,156 +343,6 @@ drwxr-xr-x  3 root root      4096 Oct  3 14:42 .
 -rw-r--r--  1 root root 536870912 Oct  3 14:45 randwrite.2.0
 -rw-r--r--  1 root root 536870912 Oct  3 14:45 randwrite.4.0
 ```
+- Report the total bytes written and read by the fio benchmark on your device.
 
-# 5. blk-trace
-
-A file system writes data to the disk at block grannularity. blk-trace is a tool used to intercept these writes to your device.
-
-Install block Trace:
-```
-$ sudo apt-get install blktrace
-```
-See the different options with which blktrace can be run:
-```
-$ blktrace -h
-```
-Format and mount your disk again.
-
-Run blktrace as a daemon on your workload-disk for 120 seconds.
-```
-sudo blktrace -d /dev/sdb -o myfile -w 120 &
-```
-While blktrace is running in the background (note the & sign in the command above)
-Run the fio command:
-```
-sudo fio --name=randwrite --ioengine=libaio --iodepth=1 --rw=randwrite --bs=4k --direct=1 --fsync=128 --size=128M --numjobs=8 --runtime=60 --directory=/mnt
-```
-Once fio has completed its run above for 60 seconds, wait for blktrace to end. You can check the status of blktrace by bringing it back to foreground by using the following command on the same terminal.
-```
-$ fg # (wait for 1-2 mins)
-sudo blktrace -d /dev/sdb -o myfile -w 120
-=== sdb ===
-  CPU  0:                44307 events,     2077 KiB data
-  CPU  1:                71493 events,     3352 KiB data
-  CPU  2:                52828 events,     2477 KiB data
-  CPU  3:                90616 events,     4248 KiB data
-  Total:                259244 events (dropped 0),    12153 KiB data
-$
-```
-If your blocktrace was successful, you would have 1 or more of the following files created in your current folder, based on the number of CPUs in your system:
-```
-$ ls myfile.blktrace.\*
-myfile.blktrace.0  myfile.blktrace.1  myfile.blktrace.2  myfile.blktrace.3
-```
-
-Now that you have collected the block trace for fio, it is time to read the blktrace output.
-
-```
-blkparse -i myfile.blktrace.1
-```
-
-### Checkpoint 5:
-- This outputs a lot of information. Identify what each column stands for. This information can be found in the blkparse and blktrace man pages.
-- Can you add one (or more) masks (-a) to blktrace to reduce the size of the block Trace log?
-
-```
-man blktrace
-```
-
-Read about what options we can configure blktrace and blkparse with. Specifically, read about the -a flag.
-
-What does each column stand for? 
-
-# 6. Introduction to file systems
-
-## 6.1 ext4 file system
-
-ext4 is a log structured file system. i.e. it maintains a log on which it updates metadata before updating the actual file system. Answer the following questions:
-
-### Checkpoint 6:
-- Q1 - List the 3 different logging modes in ext4. How are they different from each other?
-(Hint: look at the "data" option in mount command for ext4.
-
-- Q2 - Which mode is the most efficient (high-performance) mode? Why? Is it reliable?
-
-- Q3 - Which mode is the most reliabile mode? Why? Is it efficient?
-
-## 1.2 Btrfs File System
-
-The Btrfs file system is a Copy on write file system - i.e. it never updates a block in place. When an overwrite occurs, it writes to another position on the disk, making it very suitable for flash drives.
-
-### Checkpoint 7:
-- Q1 - Create a btrfs File system on your workload device. One can do this using the `mkfs.btrfs` command. Read the log that is created. In particular, look at "Metadata" parameter in "Block group Profiles".
-
-- Q2 - Change the disk SSD, and recreate the btrfs file system. 
-```
-sudo su
-echo “0” >  /sys/dev/block/8:16/queue/rotational
-```
-
-Note: here 8:16 is the major/minor device number.
-
-- Q3 - look at the "Metadata" parameter in "Block Group Profiles". Do you see a difference? What could be the reason for this difference between SSD and HDD mode?
-
-In future, we will be performing experiments in both SSD and HDD mode.
-
-## 1.3 F2FS File System
-
-Briefly go through the slides of F2FS file system [here](https://www.usenix.org/sites/default/files/conference/protected-files/fast15_slides_lee.pdf)
-
-### Checkpoint 8:
-- Q1 - Mention atleast 3 reasons (and elaborate) why F2FS is better than ext4 and Btrfs.
-
-- Q2 - What type of workloads do you think would lead to performance drop in F2FS?
-
-## 2.1 dd
-
-- Q1 - Use the dd command to write data to disk. fill the entire disk (do not use the count parameter of dd, it would continue writing until there is no more space left on device). Vary block size (bs) parameter and plot the amount of time it takes for 3 different block sizes - 4K, 256K, 1M. Plot graph showing the time taken to fill the disk v/s block size for all 6 file system configurations.
-
-- Q2 - Which block size takes least time to fill the disk across all 6 configurations (3 - ext4, 2 - btrfs and default f2fs mode). Plot data to justify your answer.
-- Q3 - Which file system mode of operation (for ext4, btrfs) is the fastest? Plot data to justify your answer.
-- Q4 - Which file system is the fastest? Plot data to justify your answer.
-
-## 2.3 Revisiting blktrace
-
-As we have seen in A1, blkTrace is very verbose. We would like to reduce and extract only relevant information from blktrace. In order to do this, we run blktrace in "live" mode, where selective block writes done by each CPU is directly parsed by blkparse written to the terminal.
-
-These parsed selective writes can be saved in a file instead of saving the entire blktrace.
-
-- Open 2 terminals. Create an ext4 file system in one terminal and mount the disk. On the second terminal, run blktrace and blkparse together in live mode as follows:
-
-```
-	sudo blktrace -d /dev/sdb -w 30 -o - | blkparse -a fs -i -
-```
-
-Make sure you understand what each option stands for. Now go back to the first terminal, and run a dd command:
-
-```
-	sudo dd if=/dev/zero of=/mnt/myfile bs=4096 count=10
-```
-
-Note that we are writing 10 blocks, each 4KB in size, to ext4 file system.
-
-You should get an output similar to the following in the second terminal:
-
-```
-$ sudo blktrace -d /dev/sdb -w 30 -o - | blkparse -a fs -i -
-  8,16   2        4     0.000012943 16831  I   W 274432 + 80 [dd]
-  8,16   2        6     0.000027266 16831  D   W 274432 + 80 [dd]
-  8,16   2        7     0.000181584 16831  C   W 274432 + 80 [0]
-  8,16   1       12     5.243222997 16800  I  WS 8650888 + 40 [jbd2/sdb-8]
-  8,16   1       14     5.243232313 16800  D  WS 8650888 + 40 [jbd2/sdb-8]
-  8,16   1       15     5.243453109     0  C  WS 8650888 + 40 [0]
-  8,16   1       18     5.243498828 16800  I  WS 8650928 + 8 [jbd2/sdb-8]
-  8,16   1       19     5.243503175 16800  D  WS 8650928 + 8 [jbd2/sdb-8]
-  8,16   1       20     5.243670258     0  C  WS 8650928 + 8 [0]
-
-```
-
-Here, the `-a fs` command ensures only writes happening through the file system module is captured and parsed. 
-
-- Q1 - identify what each column stands for in the blktrace. Look at column 6. We are only interested in values with "C". explain why. Look at column 7. what do W and WS stand for? explain. Look at column 9. we see writes from not only dd but also by jbd2. what is jbd2?
-
-- Q2 - you wrote 10 blocks each 4KB in size. the 8th column shows a number + 80. what does the number stand for? what does the 80 stand for? why is it 10 and not 80? (Hint: 1 sector = 512 bytes).
-
-- Q4 - report the size of the blktrace file captured, by only looking at "C"ompleted block traces. which are "W"ritten both asynchronously or "W"ritten "S"ynchronously. report your log file size for each of the 6 configuration runs for Q3.
+- Now run the same fio command with blocktrace enabled (follow the same steps as dd command above). Compare  the drop in fio performance (IOPS, Bandwidth) when you enable blocktrace.
