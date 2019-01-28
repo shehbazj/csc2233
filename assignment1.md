@@ -10,8 +10,11 @@ In this assignment, you will be compiling the linux kernel, setting up a block-t
 Checkpoints are places where the output of your setup should match the output of the handout.
 At the end of this assignment, please email the output of your checkpoints as a pdf document titled `student1\_student2.pdf` to the TA:
 
-TA Contact: Shehbaz Jaffer\\
-Email:  firstname.lastname@mail.utoronto.ca
+**TA Contact** Shehbaz Jaffer
+
+**Email**  firstname.lastname@mail.utoronto.ca
+
+**Assignment Deadline** Feb 5th 4.59 PM 
 
 Lets begin!
 
