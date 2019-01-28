@@ -337,6 +337,6 @@ drwxr-xr-x  3 root root      4096 Oct  3 14:42 .
 ```
 - Report the total bytes written and read by the fio benchmark on your device.
 
-- run fio command for the 3 file systems - ext4, btrfs (SSD mode) and f2fs. compare the performance of the three file systems, preferably using a bar graph or a table (bar graph is preferred).
+- run fio command for the 3 file systems - ext4, btrfs (SSD mode) and f2fs. compare the performance of the three file systems, preferably using a bar graph.
 
 - Now run the same fio command with blocktrace enabled (follow the same steps as dd command above). Compare  the drop in fio performance (IOPS, Bandwidth) for each of the 3 file systems. In which file system do you observe the most significant drop in performance? explain your results.
