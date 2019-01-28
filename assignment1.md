@@ -1,9 +1,19 @@
-# CSC2233 - Assignment 1
+# CSC2233 project overview
 
 ### Hello and welcome to CSC2233!
 
+As you might already have observed from the couple of lectures so far a lot in designing and optimizing storage systems depends on what workloads/applications a storage system is running. One example we have talked about in different contexts is locality in the workload. Storage systems researchers and practitioners therefore spend quite a bit of time understanding storage system workloads. 
+
+In the first part of the course project, you will learn how to set up different storage systems, run workloads on them using synthetic workload generators and use a tool called blktrace that allows you to record IO operations at the block level, i.e. the read and write operations that the underlying storage device will see. We will have a series of assignments to get you familiar with these tasks. 
+
+The second part of the project is where you have a chance to become creative and do actual research. You will be able to choose between two different routes: 
+(1) in the first one you will try to optimize the blktrace tool to reduce its overheads, which you will see can be quite high for some workloads.
+(2) in the second one you will use your setup and workloads to make some blktrace measurements and perform some interesting and novel analysis on them.
+
+# CSC2233 - Assignment 1
+
 This assignment forms the basis of projects that you would be doing as a part of this course.
-You would have to use your laptop/desktop which has more than 4GB memory and about 60 GB free space. If you require a separate machine, please consult the instructor.
+You will need access to a laptop/desktop which has more than 4GB memory and about 60 GB free space. If you require a separate machine, please consult the instructor.
 
 In this assignment, you will be compiling the linux kernel, setting up a block-trace tool, and running the fio workload to capture block traces on an emulated SSD and 2 workloads - `dd` and `fio`. The assignment is split into multiple parts with `checkpoints`.
 
@@ -190,21 +200,15 @@ sudo umount -l /mnt
 
 # 4. Introduction to file systems
 
+In your experiments you will use three different file systems that all follow different design principles.
+
 ## 4.1 ext4 file system
 
-ext4 is a log structured file system. i.e. it maintains a log on which it updates metadata before updating the actual file system. Answer the following questions:
-
-### Checkpoint 4:
-- Q1 - List the 3 different logging modes in ext4. How are they different from each other?
-(Hint: look at the "data" option in mount command for ext4.
-
-- Q2 - Which mode is the most efficient (high-performance) mode? Why? Is it reliable?
-
-- Q3 - Which mode is the most reliabile mode? Why? Is it efficient?
+ext4 is a journaling file system. i.e. it maintains a journal on which it updates metadata before updating the actual file system. You will learn more about journaling file systems in week 5 of the class.
 
 ## 4.2 Btrfs File System
 
-The Btrfs file system is a Copy on write file system - i.e. it never updates a block in place. When an overwrite occurs, it writes to another position on the disk, making it very suitable for flash drives.
+The Btrfs file system is a Copy on write file system - i.e. it never updates a block in place. When an overwrite occurs, it writes to another position on the disk, making it very suitable for flash drives. You will learn more about btrfs in week 8 of the class.
 
 ### Checkpoint 5:
 - Q1 - Create a btrfs File system on your workload device. One can do this using the `mkfs.btrfs` command. Read the output of mkfs command. In particular, look at "Metadata" parameter in "Block group Profiles".
@@ -223,16 +227,13 @@ In future, we will be performing experiments in SSD mode only.
 
 ## 4.3 F2FS File System
 
-Briefly go through the slides of F2FS file system [here](https://www.usenix.org/sites/default/files/conference/protected-files/fast15_slides_lee.pdf)
-
-### Checkpoint 6:
-- Q1 - Mention atleast 3 reasons (and elaborate) why F2FS is better than ext4 and Btrfs.
-
-- Q2 - What type of workloads do you think would lead to performance drop in F2FS?
+F2FS is a file system designed specifically for flash and follows a log-structured design.
+You will learn more about log-structired file systems in week 4 of the class.
+You can find more information about the F2FS file system [here](https://www.usenix.org/sites/default/files/conference/protected-files/fast15_slides_lee.pdf)
 
 # 5. blk-trace
 
-A file system writes data to the disk at block grannularity. `blktrace` is a tool used to intercept these writes to your device.
+A file system reads and writes data to the disk at block grannularity. `blktrace` is a tool used to intercept these reads and writes to your device.
 
 Install block Trace inside your VM:
 ```
